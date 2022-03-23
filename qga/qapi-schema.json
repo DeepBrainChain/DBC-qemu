@@ -1435,3 +1435,66 @@
 { 'command': 'guest-ssh-remove-authorized-keys',
   'data': { 'username': 'str', 'keys': ['str'] },
   'if': 'defined(CONFIG_POSIX)' }
+
+
+##
+# @GuestGpuStatus:
+#
+# Information about guest agent commands.
+#
+# @name: name of the gpu device
+# @bus-id: The tuple domain:bus:device.function PCI identifier (NULL terminator)
+# @mem-total: Total physical device memory (in bytes)
+# @mem-free: Unallocated device memory (in bytes)
+# @mem-used: Sum of Reserved and Allocated device memory (in bytes)
+# @gpu-utilization: Percent of time over the past sample period during which one or more kernels was executing on the GPU
+# @mem-utilization: Percent of time over the past sample period during which global (device) memory was being read or written
+# @pwr-usage: the power usage information
+# @pwr-cap: the power management limit in milliwatts
+# @temperature: the current temperature readings for the device, in degrees C
+#
+# Since: 6.1
+##
+{ 'struct': 'GuestGpuStatus',
+  'data': { 'name': 'str',
+            'bus-id': 'str',
+            'mem-total': 'uint64',
+            'mem-free': 'uint64',
+            'mem-used': 'uint64',
+            'gpu-utilization': 'uint32',
+            'mem-utilization': 'uint32',
+            'pwr-usage': 'uint32',
+            'pwr-cap': 'uint32',
+            'temperature': 'uint32' } }
+
+##
+# @GuestGpuInfo:
+#
+# Information about guest agent commands.
+#
+# @driver-version: the version of the system's graphics driver
+# @nvml-version: the version of the NVML library
+# @cuda-version: the version of the CUDA driver
+# @gpus: gpu info list
+#
+# Since: 6.1
+##
+{ 'struct': 'GuestGpuInfo',
+  'data': { 'driver-version': 'str',
+            'nvml-version': 'str',
+            'cuda-version': 'str',
+            'gpus': ['GuestGpuStatus'] } }
+
+##
+# @guest-get-gpus:
+#
+# Remove public keys from the user .ssh/authorized_keys on Unix systems (not
+# implemented for other systems). It's not an error if the key is already
+# missing.
+#
+# Returns: Nothing on success.
+#
+# Since: 6.1
+##
+{ 'command': 'guest-get-gpus',
+  'returns': 'GuestGpuInfo' }

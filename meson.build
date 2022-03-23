@@ -1947,6 +1947,20 @@ config_host_data.set('CONFIG_CAPSTONE', capstone.found())
 config_host_data.set('CONFIG_FDT', fdt.found())
 config_host_data.set('CONFIG_SLIRP', slirp.found())
 
+libnvml = not_found
+if targetos == 'linux'
+  libnvml = cc.find_library('nvidia-ml', dirs: meson.source_root() / 'nvml/lib64/', required: true)
+elif targetos == 'windows'
+  libnvml = cc.find_library('nvml', dirs: meson.source_root() / 'nvml/lib/x64/', required: true)
+endif
+if libnvml.found()
+  nvmlinc = include_directories('nvml/include/')
+  libnvml = declare_dependency(compile_args: '-Wno-unknown-pragmas', dependencies: [libnvml], include_directories: nvmlinc)
+  nvmltest = executable('nvmltest', files('nvml/example/example.c'), dependencies: libnvml, install: false)
+else
+  error('libnvml should be found')
+endif
+
 #####################
 # Generated sources #
 #####################

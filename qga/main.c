@@ -51,14 +51,14 @@
 #define QGA_SERIAL_PATH_DEFAULT "/dev/ttyS0"
 #else
 #define QGA_VIRTIO_PATH_DEFAULT "\\\\.\\Global\\org.qemu.guest_agent.0"
-#define QGA_STATE_RELATIVE_DIR  "qemu-ga"
+#define QGA_STATE_RELATIVE_DIR  "dbc-ga"
 #define QGA_SERIAL_PATH_DEFAULT "COM1"
 #endif
 #ifdef CONFIG_FSFREEZE
 #define QGA_FSFREEZE_HOOK_DEFAULT CONFIG_QEMU_CONFDIR "/fsfreeze-hook"
 #endif
 #define QGA_SENTINEL_BYTE 0xFF
-#define QGA_CONF_DEFAULT CONFIG_QEMU_CONFDIR G_DIR_SEPARATOR_S "qemu-ga.conf"
+#define QGA_CONF_DEFAULT CONFIG_QEMU_CONFDIR G_DIR_SEPARATOR_S "dbc-ga.conf"
 #define QGA_RETRY_INTERVAL 5
 
 static struct {
@@ -135,7 +135,7 @@ init_dfl_pathnames(void)
     dfl_pathnames.state_dir = qemu_get_local_state_pathname(
       QGA_STATE_RELATIVE_DIR);
     dfl_pathnames.pidfile   = qemu_get_local_state_pathname(
-      QGA_STATE_RELATIVE_DIR G_DIR_SEPARATOR_S "qemu-ga.pid");
+      QGA_STATE_RELATIVE_DIR G_DIR_SEPARATOR_S "dbc-ga.pid");
 }
 
 static void quit_handler(int sig)
@@ -226,7 +226,7 @@ static void usage(const char *cmd)
 {
     printf(
 "Usage: %s [-m <method> -p <path>] [<options>]\n"
-"QEMU Guest Agent " QEMU_FULL_VERSION "\n"
+"DBC Guest Agent " QEMU_FULL_VERSION "\n"
 QEMU_COPYRIGHT "\n"
 "\n"
 "  -m, --method      transport method: one of unix-listen, virtio-serial,\n"
@@ -259,7 +259,7 @@ QEMU_COPYRIGHT "\n"
 #endif
 "  -b, --blacklist   comma-separated list of RPCs to disable (no spaces, \"?\"\n"
 "                    to list available RPCs)\n"
-"  -D, --dump-conf   dump a qemu-ga config file based on current config\n"
+"  -D, --dump-conf   dump a dbc-ga config file based on current config\n"
 "                    options / command-line parameters to stdout\n"
 "  -r, --retry-path  attempt re-opening path if it's unavailable or closed\n"
 "                    due to an error which may be recoverable in the future\n"
@@ -1145,7 +1145,7 @@ static void config_parse(GAConfig *config, int argc, char **argv)
             config->log_level = G_LOG_LEVEL_MASK;
             break;
         case 'V':
-            printf("QEMU Guest Agent %s\n", QEMU_VERSION);
+            printf("DBC Guest Agent %s\n", QEMU_VERSION);
             exit(EXIT_SUCCESS);
         case 'd':
             config->daemonize = 1;
@@ -1476,7 +1476,7 @@ int main(int argc, char **argv)
 
     socket_activation = check_socket_activation();
     if (socket_activation > 1) {
-        g_critical("qemu-ga only supports listening on one socket");
+        g_critical("dbc-ga only supports listening on one socket");
         ret = EXIT_FAILURE;
         goto end;
     }

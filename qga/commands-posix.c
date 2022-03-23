@@ -28,6 +28,8 @@
 #include "qemu/cutils.h"
 #include "commands-common.h"
 
+#include "nvml.h"
+
 #ifdef HAVE_UTMPX
 #include <utmpx.h>
 #endif
@@ -3301,5 +3303,105 @@ GuestDeviceInfoList *qmp_guest_get_devices(Error **errp)
 {
     error_setg(errp, QERR_UNSUPPORTED);
 
+    return NULL;
+}
+
+GuestGpuInfo *qmp_guest_get_gpus(Error **errp)
+{
+    GuestGpuInfo *info = NULL;
+    GuestGpuStatus *gpu = NULL;
+    nvmlReturn_t result = NVML_SUCCESS;
+    unsigned int device_count, i;
+    int cudaDriverVersion;
+    char version[NVML_SYSTEM_DRIVER_VERSION_BUFFER_SIZE];
+
+    // First initialize NVML library
+    result = nvmlInit();
+    if (NVML_SUCCESS != result) {
+        error_setg(errp, "Failed to initialize NVML: '%s'", nvmlErrorString(result));
+        return info;
+    }
+
+    info = g_new0(GuestGpuInfo, 1);
+    info->gpus = NULL;
+
+    // get driver version
+    result = nvmlSystemGetDriverVersion(version, NVML_SYSTEM_DRIVER_VERSION_BUFFER_SIZE);
+    if (NVML_SUCCESS != result) {
+        goto Error;
+    } else {
+        info->driver_version = g_strdup(version);
+    }
+
+    // get nvml version
+    result = nvmlSystemGetNVMLVersion(version, NVML_SYSTEM_DRIVER_VERSION_BUFFER_SIZE);
+    if (NVML_SUCCESS != result) {
+        goto Error;
+    } else {
+        info->nvml_version = g_strdup(version);
+    }
+
+    // cuda driver version
+    result = nvmlSystemGetCudaDriverVersion(&cudaDriverVersion);
+    if (NVML_SUCCESS != result) {
+        goto Error;
+    } else {
+        int major = cudaDriverVersion / 1000;
+        int minor = cudaDriverVersion % 1000 / 10;
+        info->cuda_version = g_strdup_printf("%d.%d", major, minor);
+    }
+
+    result = nvmlDeviceGetCount(&device_count);
+    if (NVML_SUCCESS != result) {
+        goto Error;
+    }
+    
+    for (i = 0; i < device_count; i++) {
+        nvmlDevice_t device;
+        char name[NVML_DEVICE_NAME_BUFFER_SIZE];
+        nvmlPciInfo_t pci;
+        nvmlUtilization_t utilization;
+        nvmlMemory_t memory;
+        unsigned int power, limit;
+        unsigned int temperature;
+        
+        result = nvmlDeviceGetHandleByIndex(i, &device);
+        if (NVML_SUCCESS != result) goto Error;
+        result = nvmlDeviceGetName(device, name, NVML_DEVICE_NAME_BUFFER_SIZE);
+        if (NVML_SUCCESS != result) goto Error;
+        result = nvmlDeviceGetPciInfo(device, &pci);
+        if (NVML_SUCCESS != result) goto Error;
+        result = nvmlDeviceGetMemoryInfo(device, &memory);
+        if (NVML_SUCCESS != result) goto Error;
+        result = nvmlDeviceGetUtilizationRates(device, &utilization);
+        if (NVML_SUCCESS != result) goto Error;
+        result = nvmlDeviceGetPowerUsage(device, &power);
+        if (NVML_SUCCESS != result) goto Error;
+        result = nvmlDeviceGetPowerManagementLimit(device, &limit);
+        if (NVML_SUCCESS != result) goto Error;
+        result = nvmlDeviceGetTemperature(device, NVML_TEMPERATURE_GPU, &temperature);
+        if (NVML_SUCCESS != result) goto Error;
+
+        gpu = g_new0(GuestGpuStatus, 1);
+        gpu->name = g_strdup(name);
+        gpu->bus_id = g_strdup(pci.busId);
+        gpu->mem_total = memory.total;
+        gpu->mem_free = memory.free;
+        gpu->mem_used = memory.used;
+        gpu->gpu_utilization = utilization.gpu;
+        gpu->mem_utilization = utilization.memory;
+        gpu->pwr_usage = power;
+        gpu->pwr_cap = limit;
+        gpu->temperature = temperature;
+        QAPI_LIST_PREPEND(info->gpus, gpu);
+    }
+
+    result = nvmlShutdown();
+    return info;
+
+Error:
+    qapi_free_GuestGpuInfo(info);
+    error_setg(errp, QERR_QGA_COMMAND_FAILED, nvmlErrorString(result));
+    result = nvmlShutdown();
     return NULL;
 }

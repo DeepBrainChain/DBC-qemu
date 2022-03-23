@@ -44,7 +44,7 @@ qga_ss = qga_ss.apply(config_host, strict: false)
 
 qga = executable('qemu-ga', qga_ss.sources(),
                  link_args: config_host['LIBS_QGA'].split(),
-                 dependencies: [qemuutil, libudev],
+                 dependencies: [qemuutil, libudev, libnvml],
                  install: true)
 all_qga = [qga]
 
