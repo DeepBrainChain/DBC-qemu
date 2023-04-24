@@ -69,19 +69,23 @@ ifneq (${ARCH},$(filter ${ARCH},32 64))
 	$(error Unknown architecture!)
 endif
 
-NVML_LIB += ../lib/
+NVML_LIB += ../lib64/
 NVML_LIB_L := $(addprefix -L , $(NVML_LIB))
 
 CFLAGS  := -I ../../include -I ../include
 LDFLAGS := -lnvidia-ml $(NVML_LIB_L)
 
-all: example supportedVgpus
+all: example supportedVgpus dbcga
 example: example.o
 	$(CC) $< $(CFLAGS) $(LDFLAGS) -o $@
 supportedVgpus: supportedVgpus.o
+	$(CC) $< $(CFLAGS) $(LDFLAGS) -o $@
+dbcga: dbcga.o
 	$(CC) $< $(CFLAGS) $(LDFLAGS) -o $@
 clean:
 	-@rm -f example.o
 	-@rm -f example
 	-@rm -f supportedVgpus.o
 	-@rm -f supportedVgpus
+	-@rm -f dbcga.o
+	-@rm -f dbcga
